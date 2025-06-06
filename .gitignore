@@ -43,3 +43,6 @@ cython_debug/
 .mypy_cache/
 # Sphinx documentation
 docs/_build/
+
+# sqlite database files
+*.sqlite3
