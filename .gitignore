@@ -1,0 +1,45 @@
+# Python bytecode files
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+*.db
+*.sqlite
+*.log
+*.pid
+*.swp
+*.bak
+*.tmp
+*.DS_Store
+*.egg-info
+*.egg
+*.zip
+*.tar.gz
+*.tar.bz2
+
+# Virtual environment
+venv/
+# Environment variables
+.env
+# Pytest cache
+.pytest_cache/
+# Coverage reports
+.coverage
+# Migrations
+migrations/
+# Jupyter Notebook checkpoints
+.ipynb_checkpoints/
+# IDE specific files
+.idea/
+# PyCharm specific files
+*.iml
+# VS Code specific files
+.vscode/
+# PyInstaller
+dist/
+# Cython debug symbols
+cython_debug/
+# MyPy
+.mypy_cache/
+# Sphinx documentation
+docs/_build/

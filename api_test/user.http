@@ -1,0 +1,172 @@
+@host = 127.0.0.1:8000
+POST /api/users/register
+Host: {{host}}
+Content-Type: application/json
+
+{
+    
+    "password1": "password1234&",
+    "password2": "password1234&",
+    "email": "email@gmail.com",
+    "phone_number": "+233501234567",
+    "first_name": "First",
+    "last_name": "Last"
+}
+
+### Action: test for password1 not matching password2
+### Result: return 400 when passwords doesn't match
+POST /api/users/register
+Host: {{host}}
+Content-Type: application/json
+
+{
+    
+    "password1": "password",
+    "password2": "password123",
+    "email": "email@gmail.com",
+    "phone_number": "+233501234567",
+    "first_name": "First",
+    "last_name": "Last"
+}
+
+
+### Action: test for invalid email address
+### Result: return 400 when email is invalid
+POST /api/users/register
+Host: {{host}}
+Content-Type: application/json
+
+{
+    
+    "password1": "password",
+    "password2": "password",
+    "email": "emailgmail.com",
+    "phone_number": "+233501234567",
+    "first_name": "First",
+    "last_name": "Last"
+}
+
+### Action: test for existing email address
+### Result: return 400 when email already exists
+POST /api/users/register
+Host: {{host}}
+Content-Type: application/json
+
+{
+    
+    "password1": "password",
+    "password2": "password",
+    "email": "email@gmail.com",
+    "phone_number": "+233501234567",
+    "first_name": "First",
+    "last_name": "Last"
+}
+
+
+### Action: test for invalid phone number
+### Result: return 400 when phone number is invalid
+POST /api/users/register
+Host: {{host}}
+Content-Type: application/json
+
+{
+    "password1": "password",
+    "password2": "password",
+    "email": "new.email@gmail.com",
+    "phone_number": 112222232,
+    "first_name": "First",
+    "last_name": "Last"
+}
+
+### Action: test valid email and phone number
+### Result: return 201 when registration is successful
+POST /api/users/register
+Host: {{host}}
+Content-Type: application/json
+
+{
+    "password": "password12323",
+    "email": "dansoderrick80@gmail.com",
+    "phone_number": "+233501234567",
+    "first_name": "Derrick",
+    "last_name": "Danso"
+}
+
+### Action: test for registering user with referral code
+### Result: return 201 when registration is successful with referral code
+POST /api/users/register
+Host: {{host}}
+Content-Type: application/json
+
+{
+    "password1": "password12323",
+    "password2": "password12323",
+    "email": "dansoderrick80@yahoo.com",
+    "phone_number": "+233501234567",
+    "first_name": "Derrick",
+    "last_name": "Danso",
+    "referral_code": "DFTZ49NQVB"
+}
+
+### Action: test for registering user with invalid referral code
+### Result: return 400 when referral code is invalid
+POST /api/users/register
+Host: {{host}}
+Content-Type: application/json
+
+{
+    "password1": "password12323",
+    "password2": "password12323",
+    "email": "dansoderrick80@yahoo.com",
+    "phone_number": "+233501234567",
+    "first_name": "Derrick",
+    "last_name": "Danso",
+    "referral_code": "INVALID_CODE"
+}
+
+### Action: test for resend of verification email
+### Result: return 200 when verification email is resent
+POST /api/users/resend-verification-email
+Host: {{host}}
+Content-Type: application/json
+
+{
+    "email": "dansoderrick80@gmail.com"
+}
+
+### Action: test for google login
+### Result: return 200 when google login is successful
+@access_token = eyJhbGciOiJSUzI1NiIsImtpZCI6ImJiNDM0Njk1OTQ0NTE4MjAxNDhiMzM5YzU4OGFlZGUzMDUxMDM5MTkiLCJ0eXAiOiJKV1QifQ.eyJpc3MiOiJodHRwczovL2FjY291bnRzLmdvb2dsZS5jb20iLCJhenAiOiI0NzkwNjU4NDI5NDAtMDJ1dWJhb21uc3B1YzB1czZnY2NlbGwwcTBoaTZqYW4uYXBwcy5nb29nbGV1c2VyY29udGVudC5jb20iLCJhdWQiOiI0NzkwNjU4NDI5NDAtMDJ1dWJhb21uc3B1YzB1czZnY2NlbGwwcTBoaTZqYW4uYXBwcy5nb29nbGV1c2VyY29udGVudC5jb20iLCJzdWIiOiIxMTcwMTU4MDM0MTU4NTcwNTg2NTYiLCJlbWFpbCI6ImRlcmlja2RhbnNvZGRvQGdtYWlsLmNvbSIsImVtYWlsX3ZlcmlmaWVkIjp0cnVlLCJhdF9oYXNoIjoiamZ1RUJiTWZaR0dNTXRjNmQzNlMyUSIsIm5hbWUiOiJEZXJpY2sgRGFuc28gT2t5ZXJlIiwicGljdHVyZSI6Imh0dHBzOi8vbGgzLmdvb2dsZXVzZXJjb250ZW50LmNvbS9hL0FDZzhvY0pXN0VLamJJcW5aQWhWZFR6YXp5RnhsS2hlNlVLNWljd0pwdC1GZV9HM3VWdVhzdz1zOTYtYyIsImdpdmVuX25hbWUiOiJEZXJpY2sgRGFuc28iLCJmYW1pbHlfbmFtZSI6Ik9reWVyZSIsImlhdCI6MTc0OTIxMDU1NCwiZXhwIjoxNzQ5MjE0MTU0fQ.SJU0xg1V-l67uu5WvxhOsFLssBqVR742wKnbkdyKYSmCPRu_22JKaAUArQkjBQw8YEFCY8xgS9a67bDBSKK2tvWtWeetxseDkdckpMbNiE1CqIlFBYrfOOaSSJFsFQl9HSZ8Phq1Zp88WyfvsmB-6TkuicYjQ9dM_jFir5saVwo7dzjKtrJWnv1M_gtRUD42XNzWK8ARpDHNgPxLmq1Z3iwWNOawK_3JLWCBzcTsb9OcUVMV9n4XItK1lCXPsdvyJzmpiDtRh-UlECWKBEvt4kteh8MUI3qk26-2X8NFaq8XrbVzN1_8X5g-MwAxUdm_I3Ef8T27Y9leQFiT2yIplw
+POST /api/users/google/login
+Host: {{host}}
+Content-Type: application/json
+
+{
+    "access_token": "{{access_token}}"
+}
+
+### Action: test for google login with referral code
+### Result: return 200 when google login is successful with referral code
+@valid_referral_code = Y3AQ7RURJ1
+@invalid_referral_code = INVALID_CODE
+
+@users_referral_code = 5XXSB8CI9P
+POST /api/users/google/login
+Host: {{host}}
+Content-Type: application/json
+
+{
+    "access_token": "{{access_token}}",
+    "referral_code": "{{valid_referral_code}}"
+}
+
+### Action: test for google login with the user's referral code
+### Result: return 400 when google login is attempted with the user's own referral code
+POST /api/users/google/login
+Host: {{host}}
+Content-Type: application/json
+
+{
+    "access_token": "{{access_token}}",
+    "referral_code": "{{users_referral_code}}"
+}
