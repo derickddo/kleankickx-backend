@@ -22,9 +22,9 @@ urlpatterns = [
     path('accounts/', include('allauth.account.urls')), # Add for email verification
     # path('api/addresses/', include('addresses.urls')),
     path('api/users/', include('users.urls')),
-    # path('api/services/', include('services.urls')),
+    path('api/services/', include('services.urls')),
     # path('api/orders/', include('orders.urls')),
-    # path('api/carts/', include('carts.urls')),
+    
     # path('api/delivery/', include('delivery.urls')),
     # path('api/payments/', include('payments.urls')),
     # path('api/auth/', include('users.allauth_urls'))

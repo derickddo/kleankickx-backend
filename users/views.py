@@ -12,6 +12,7 @@ from allauth.socialaccount.providers.facebook.views import FacebookOAuth2Adapter
 from allauth.socialaccount.providers.oauth2.client import OAuth2Client
 from .serializers import CustomUserSerializer, RegisterSerializer, ResendVerificationEmailSerializer
 from .models import CustomUser
+from services.models import Service
 # from cart.models import Cart, CartItem
 from allauth.account.utils import send_email_confirmation
 from allauth.account.forms import SignupForm
@@ -21,6 +22,9 @@ from allauth.socialaccount.models import SocialApp
 from .forms import CustomSignupForm
 from .utils import apply_discount_eligibility
 from allauth.account.models import EmailAddress
+from django.middleware.csrf import get_token
+from allauth.account.models import EmailConfirmationHMAC
+
 
 
 
@@ -28,6 +32,45 @@ from allauth.account.models import EmailAddress
 import logging
 
 logger = logging.getLogger(__name__)
+
+class GetCSRFTokenView(APIView):
+    permission_classes = [AllowAny]
+    def get(self, request):
+        csrf_token = get_token(request)
+        return Response({'csrf_token': csrf_token}, status=status.HTTP_200_OK)
+
+class CustomConfirmEmailView(APIView):
+    permission_classes = [AllowAny]
+    """Custom email confirmation view to handle email verification links.
+    This view uses the EmailConfirmationHMAC from allauth to verify the email address.
+    It also applies discount eligibility and logs the user in after verification.
+    """
+    def post(self, request, key, *args, **kwargs):
+        try:
+            confirmation = EmailConfirmationHMAC.from_key(key)
+            if confirmation is None:
+                return Response({'error': 'Invalid or expired confirmation link.'}, status=400)
+          
+            email_address = confirmation.email_address
+            if email_address.verified:
+                return Response({'error': 'Email already verified.'}, status=400)
+
+            confirmation.confirm(request)
+            # Optional: perform signup login step
+            user = email_address.user
+            user.is_verified = True
+            user.save()
+            apply_discount_eligibility(user)
+            logger.info("Email verified, discount applied, for %s", user.email)
+
+            # Return success response with tokens
+            return Response({
+                'message': 'Email verified successfully.',
+                
+            }, status=200)
+
+        except Exception:
+            return Response({'error': 'Verification failed. The link may be expired or invalid.'}, status=400)
 
 class RegisterView(APIView):
     permission_classes = [AllowAny]
@@ -96,38 +139,18 @@ class ResendVerificationView(APIView):
                 return Response({'error': 'User not found.'}, status=status.HTTP_404_NOT_FOUND)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-# class LoginView(APIView):
-#     permission_classes = [AllowAny]
-
-#     def post(self, request):
-#         email = request.data.get('email')
-#         password = request.data.get('password')
-#         user = authenticate(request, email=email, password=password)
-#         if user:
-#             # Merge session-based cart
-#             session_id = request.session.session_key
-#             if session_id:
-#                 session_cart = Cart.objects.filter(session_id=session_id).first()
-#                 if session_cart:
-#                     user_cart, created = Cart.objects.get_or_create(user=user)
-#                     for session_item in session_cart.items.all():
-#                         user_cart_item, item_created = CartItem.objects.get_or_create(
-#                             cart=user_cart,
-#                             service=session_item.service,
-#                             defaults={'quantity': session_item.quantity}
-#                         )
-#                         if not item_created:
-#                             user_cart_item.quantity += session_item.quantity
-#                             user_cart_item.save()
-#                     session_cart.delete()
-#                     request.session.pop('session_key', None)
-#             refresh = RefreshToken.for_user(user)
-#             return Response({
-#                 'user': CustomUserSerializer(user).data,
-#                 'access': str(refresh.access_token),
-#                 'refresh': str(refresh)
-#             })
-#         return Response({'error': 'Invalid credentials'}, status=status.HTTP_401_UNAUTHORIZED)
+class LoginView(APIView):
+    def post(self, request):
+        email = request.data.get('email')
+        password = request.data.get('password')
+        user = authenticate(email=email, password=password)
+        if user:
+            refresh = RefreshToken.for_user(user)
+            return Response({
+                'access': str(refresh.access_token),
+                'refresh': str(refresh),
+            })
+        return Response({'detail': 'Invalid credentials'}, status=status.HTTP_401_UNAUTHORIZED)
 
 class TokenRefreshView(APIView):
     permission_classes = [AllowAny]
@@ -161,110 +184,69 @@ class LogoutView(APIView):
 
 
 class GoogleLoginView(APIView):
-    permission_classes = [AllowAny]
-
     def post(self, request):
-        logger.info("Google login attempt with data")
-        id_token = request.data.get('access_token')
-    
+        access_token = request.data.get('token')
+        if not access_token:
+            return Response({'error': 'No access token provided'}, status=status.HTTP_400_BAD_REQUEST)
+
         try:
-            # Fetch Google social app
-            try:
-                app = SocialApp.objects.get(provider='google')
-                logger.info("Google social app client_id: %s", app.client_id)
-            except SocialApp.DoesNotExist:
-                logger.error("Google social app not configured")
-                return Response({'error': 'Google social app not configured.'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-            except SocialApp.MultipleObjectsReturned:
-                logger.error("Multiple Google social apps found")
-                return Response({'error': 'Multiple Google social apps configured.'}, 
-                                status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
-            # Mock ID token
-            if id_token == 'test-token-123':
-                user_data = {
-                    'email': 'test@gmail.com',
-                    'sub': '123456789',
-                    'email_verified': True,
-                    'aud': app.client_id,
-                    'given_name': 'Test',
-                    'family_name': 'User'
-                }
-            else:
-                # Validate ID token
-                response = requests.get(
-                    'https://oauth2.googleapis.com/tokeninfo',
-                    params={'id_token': id_token}
-                )
-                response.raise_for_status()
-                user_data = response.json()
-                
-
-                if user_data.get('aud') != app.client_id:
-                    logger.error("Invalid audience: %s, expected: %s", user_data.get('aud'), app.client_id)
-                    return Response({'error': 'Invalid ID token audience.'}, 
-                                    status=status.HTTP_400_BAD_REQUEST)
-                if not user_data.get('email_verified'):
-                    logger.warning("Google email not verified: %s", user_data.get('email'))
-                    return Response({'error': 'Email not verified.'}, 
-                                    status=status.HTTP_400_BAD_REQUEST)
-
-            # Create or get the user
-            email = user_data['email']
+            response = requests.get(
+                f"https://www.googleapis.com/oauth2/v3/tokeninfo?id_token={access_token}"
+            )
+            if response.status_code != 200:
+                return Response({'error': 'Invalid Google token'}, status=status.HTTP_400_BAD_REQUEST)
             
+            token_data = response.json()
+            email = token_data.get('email')
+            if not email:
+                return Response({'error': 'Email not provided by Google'}, status=status.HTTP_400_BAD_REQUEST)
+
             user, created = CustomUser.objects.get_or_create(
                 email=email,
                 defaults={
-                    'first_name': user_data.get('given_name', ''),
-                    'last_name': user_data.get('family_name', ''),
-                    'is_verified': True,  # Google accounts are verified
+                    'first_name': token_data.get('given_name', ''),
+                    'last_name': token_data.get('family_name', ''),
+                    'is_active': True
                 }
             )
 
-            # Apply bonuses
             if created:
+                logger.info("New user created via Google login: %s", email)
+
+                # Apply discount eligibility for new users
                 apply_discount_eligibility(user)
-                logger.info("Bonuses applied for new user: %s", user.email)
 
-            # Ensure SocialAccount exists
-            social_account, sa_created = SocialAccount.objects.get_or_create(
-                user=user,
-                provider='google',
-                defaults={
-                    'uid': user_data['sub'],
-                    'extra_data': user_data
-                }
-            )
-            if not sa_created:
-                social_account.extra_data.update(user_data)
-                social_account.save()
+            else:
+                logger.info("Existing user logged in via Google: %s", email)
 
-            # Link SocialToken
-            SocialToken.objects.update_or_create(
-                app=app,
-                account=social_account,
-                defaults={'token': id_token}
-            )
-
-            # Complete login
-            complete_signup(request, user, email_verification='none', signal_kwargs={}, success_url=None)
-
-            # Generate JWT tokens
             refresh = RefreshToken.for_user(user)
-            logger.info("Google login successful for user: %s", user.email)
+            logger.info("Google login successful for user: %s", email)
 
             return Response({
-                'user': CustomUserSerializer(user).data,
                 'access': str(refresh.access_token),
                 'refresh': str(refresh),
-                'message': 'Login successful.'
+                'message': 'Google login successful'
             }, status=status.HTTP_200_OK)
 
-        except requests.HTTPError as e:
-            logger.error("Google ID token validation failed: %s", str(e))
-            return Response({'error': f'ID token validation failed: {str(e)}'}, 
-                            status=status.HTTP_400_BAD_REQUEST)
         except Exception as e:
-            logger.error("Google login failed: %s\n%s", str(e), traceback.format_exc())
-            return Response({'error': 'Internal server error. Please try again.'}, 
-                            status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            logger.error("Google login error: %s", str(e))
+            return Response({'error': 'Google login failed'}, status=status.HTTP_400_BAD_REQUEST)
+
+class CartView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        return Response({'cart': request.user.cart_data}, status=status.HTTP_200_OK)
+
+    def post(self, request):
+        cart = request.data.get('cart', [])
+        for item in cart:
+            try:
+                Service.objects.get(id=item['service_id'])
+            except Service.DoesNotExist:
+                return Response({'error': f"Service {item['service_id']} not found"}, status=status.HTTP_400_BAD_REQUEST)
+        
+        request.user.cart_data = cart
+        request.user.save()
+        logger.info(f"Updated cart for user {request.user.email}")
+        return Response({'cart': cart}, status=status.HTTP_200_OK)

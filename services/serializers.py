@@ -1,20 +1,24 @@
 from rest_framework import serializers
 from .models import Service
-from phonenumber_field.serializerfields import PhoneNumberField
+import base64
 
 class ServiceSerializer(serializers.ModelSerializer):
-    phone_number = PhoneNumberField(required=False, allow_null=True)
+    """Serializer for the Service model, including image handling."""
+    image = serializers.SerializerMethodField()
 
     class Meta:
         model = Service
         fields = [
-            'id', 'name', 'description', 'price', 'duration', 'category',
-            'phone_number', 'created_at', 'updated_at'
+            'id', 'name', 'description', 'price', 'created_at', 'updated_at', 'image'
         ]
+    def get_image(self, obj):
+        if obj.image:
+            # Encode binary image as base64
+            return f"data:image/jpeg;base64,{base64.b64encode(obj.image).decode('utf-8')}"
+        return None
+
 
     def validate(self, data):
         if data.get('price') < 0:
             raise serializers.ValidationError("Price cannot be negative.")
-        if data.get('duration') <= 0:
-            raise serializers.ValidationError("Duration must be a positive number.")
-        return data
+       

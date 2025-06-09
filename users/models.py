@@ -36,6 +36,7 @@ class CustomUser(AbstractUser):
     is_verified = models.BooleanField(default=False)
     signup_discount_used = models.BooleanField(default=False)
     signup_discount_applied = models.BooleanField(default=False)
+    cart_data = models.JSONField(default=dict, blank=True, null=True)
 
     USERNAME_FIELD = 'email'
     REQUIRED_FIELDS = []

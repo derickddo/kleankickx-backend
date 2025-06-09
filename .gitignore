@@ -45,4 +45,4 @@ cython_debug/
 docs/_build/
 
 # sqlite database files
-*.sqlite3
+*.sqlite3 
