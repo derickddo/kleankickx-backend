@@ -121,31 +121,51 @@ class RegisterView(APIView):
 
 
 
-class ResendVerificationView(APIView):
+class ResendEmailVerificationView(APIView):
+    """ View to resend email verification link to users who have not verified their email.
+    This view checks if the user exists and if their email is already verified.
+    If the email is not verified, it sends a new verification email using allauth's email confirmation system.
+    """
     permission_classes = [AllowAny]
 
     def post(self, request):
         serializer = ResendVerificationEmailSerializer(data=request.data)
-        if serializer.is_valid():
-            email = serializer.validated_data['email']
-            try:
-                user = CustomUser.objects.get(email=email)
-                if not user.is_verified:
-                    # Send verification email using allauth
-                    send_email_confirmation(request, user, signup=True)
-                    return Response({'message': 'Verification email resent.'})
-                return Response({'error': 'Email already verified.'}, status=status.HTTP_400_BAD_REQUEST)
-            except CustomUser.DoesNotExist:
-                return Response({'error': 'User not found.'}, status=status.HTTP_404_NOT_FOUND)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+        email = serializer.validated_data['email']
+        try:
+            user = CustomUser.objects.get(email=email)
+            if user.is_verified:
+                return Response({'message': 'Email already verified.'}, status=status.HTTP_200_OK)
+
+            # Trigger allauth email verification
+            email_address = user.emailaddress_set.filter(email=email).first()
+            if email_address:
+                email_address.send_confirmation(request)
+                return Response({'message': 'Verification email sent.'}, status=status.HTTP_200_OK)
+            else:
+                return Response({'error': 'Email address not found.'}, status=status.HTTP_404_NOT_FOUND)
+
+        except CustomUser.DoesNotExist:
+            return Response({'error': 'User with this email does not exist.'}, status=status.HTTP_404_NOT_FOUND)
+    
 
 class LoginView(APIView):
-    def post(self, request):
+    permission_classes = [AllowAny]
+    """Login view to authenticate users using email and password.
+    """
+    def post(self, request):        
         email = request.data.get('email')
         password = request.data.get('password')
         user = authenticate(email=email, password=password)
         if user:
             refresh = RefreshToken.for_user(user)
+            refresh['email'] = user.email
+            refresh['first_name'] = user.first_name or ''
+            refresh['last_name'] = user.last_name or ''
+            refresh['is_verified'] = user.is_verified
+
             return Response({
                 'access': str(refresh.access_token),
                 'refresh': str(refresh),
@@ -184,6 +204,9 @@ class LogoutView(APIView):
 
 
 class GoogleLoginView(APIView):
+    """Google login view to authenticate users using Google OAuth2."""
+    permission_classes = [AllowAny]
+
     def post(self, request):
         access_token = request.data.get('token')
         if not access_token:
@@ -220,6 +243,10 @@ class GoogleLoginView(APIView):
                 logger.info("Existing user logged in via Google: %s", email)
 
             refresh = RefreshToken.for_user(user)
+            refresh['email'] = user.email
+            refresh['first_name'] = user.first_name or ''
+            refresh['last_name'] = user.last_name or ''
+            refresh['is_verified'] = user.is_verified
             logger.info("Google login successful for user: %s", email)
 
             return Response({

@@ -1,28 +1,40 @@
-# from django.db import models
-# from users.models import CustomUser
-# from phonenumber_field.modelfields import PhoneNumberField
+from django.db import models
+from users.models import CustomUser
+from services.models import Service
+from addresses.models import Address
+from payments.models import Payment
+from delivery.models import Delivery
+import uuid
 
-# class Order(models.Model):
-#     STATUS_CHOICES = (
-#         ('PICKED_UP', 'Picked Up'),
-#         ('CLEANING_ONGOING', 'Cleaning Ongoing'),
-#         ('READY', 'Ready'),
-#         ('SCHEDULED', 'Scheduled for Delivery'),
-#         ('DELIVERED', 'Delivered'),
-#     )
+class Order(models.Model):
+    order_id = models.UUIDField(default=uuid.uuid4, editable=False, unique=True, primary_key=True)
+    user = models.ForeignKey(CustomUser, on_delete=models.CASCADE, related_name='orders')
+    address = models.ForeignKey(Address, on_delete=models.SET_NULL, null=True, related_name='orders')
+    payment = models.ForeignKey(Payment, on_delete=models.SET_NULL, null=True, related_name='orders')
+    delivery = models.ForeignKey(Delivery, on_delete=models.SET_NULL, null=True, related_name='orders')
+    total_amount = models.DecimalField(max_digits=10, decimal_places=2)
+    subtotal = models.DecimalField(max_digits=10, decimal_places=2)
+    tax_amount = models.DecimalField(max_digits=7, decimal_places=2)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
 
-#     user = models.ForeignKey(CustomUser, on_delete=models.CASCADE)
-#     total_price = models.DecimalField(max_digits=10, decimal_places=2)
-#     delivery_cost = models.DecimalField(max_digits=10, decimal_places=2, default=0)
-#     discount = models.DecimalField(max_digits=10, decimal_places=2, default=0)  # New field
-#     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='PICKED_UP')
-#     delivery_name = models.CharField(max_length=100)
-#     delivery_phone = PhoneNumberField()
-#     delivery_email = models.EmailField()
-#     delivery_address = models.TextField()
-#     delivery_region = models.CharField(max_length=100)
-#     delivery_landmark = models.CharField(max_length=100, blank=True)
-#     delivery_latitude = models.FloatField(null=True, blank=True)
-#     delivery_longitude = models.FloatField(null=True, blank=True)
-#     created_at = models.DateTimeField(auto_now_add=True)
-#     updated_at = models.DateTimeField(auto_now=True)
+    def __str__(self):
+        return f"Order {self.id} by {self.user.email}"
+
+    class Meta:
+        db_table = 'order'
+        verbose_name = 'Order'
+        ordering = ['-created_at'] # Orders are ordered by creation date, most recent first
+
+class OrderItem(models.Model):
+    order = models.ForeignKey(Order, on_delete=models.CASCADE, related_name='items')
+    service = models.ForeignKey(Service, on_delete=models.SET_NULL, null=True)
+    quantity = models.PositiveIntegerField()
+    price = models.DecimalField(max_digits=10, decimal_places=2)
+
+    def __str__(self):
+        return f"{self.quantity} x {self.service.name} in Order {self.order.id}"
+    class Meta:
+        db_table = 'order_item'
+        verbose_name = 'Order Item'
+      

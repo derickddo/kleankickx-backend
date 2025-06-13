@@ -5,11 +5,13 @@ from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from rest_framework_simplejwt.tokens import RefreshToken
 
 class CustomUserSerializer(serializers.ModelSerializer):
+    """Serializer for CustomUser model."""
     class Meta:
         model = CustomUser
         fields = ['id', 'email', 'first_name', 'last_name', 'phone_number',]
 
 class RegisterSerializer(serializers.ModelSerializer):
+    """Serializer for user registration."""
     email = serializers.EmailField(required=True)
     password = serializers.CharField(write_only=True, required=True)
     phone_number = serializers.CharField(required=False, allow_blank=True)
@@ -42,12 +44,16 @@ class RegisterSerializer(serializers.ModelSerializer):
         user.set_password(password)
         user.save()
         return user
+
+
     
 
 class ResendVerificationEmailSerializer(serializers.Serializer):
+    """Serializer for resending verification email."""
     email = serializers.EmailField(required=True)
 
     def validate_email(self, value):
+        """Check if the email exists in the database."""
         if not CustomUser.objects.filter(email=value).exists():
             raise serializers.ValidationError("No user with this email exists.")
         return value
@@ -55,6 +61,8 @@ class ResendVerificationEmailSerializer(serializers.Serializer):
 
 
 class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
+    """Custom serializer to include additional user information in the JWT token."
+    """
     @classmethod
     def get_token(cls, user):
         token = super().get_token(user)
