@@ -2,16 +2,16 @@ from .base import *
 
 # Production settings
 # Database
-# DATABASES = {
-#     'default': {
-#         'ENGINE': 'django.db.backends.postgresql',
-#         'NAME': 'your_production_db_name',
-#         'USER': 'your_production_db_user',
-#         'PASSWORD': 'your_production_db_password',
-#         'HOST': 'your_production_db_host',
-#         'PORT': 'your_production_db_port',
-#     }
-# }
+DATABASES = {
+    'default': {
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': os.getenv('DB_NAME'),
+        'USER': os.getenv('DB_USER'),
+        'PASSWORD': os.getenv('DB_PASSWORD'),
+        'HOST': os.getenv('DB_HOST'),
+        'PORT': os.getenv('DB_PORT'),
+    }
+}
 
 
 # # Security settings

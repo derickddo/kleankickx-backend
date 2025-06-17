@@ -12,3 +12,9 @@ class Service(models.Model):
 
     def __str__(self):
         return self.name
+    
+    class Meta:
+        verbose_name = 'Service'
+        verbose_name_plural = 'Services'
+        db_table = 'services'
+        ordering = ['-created_at']

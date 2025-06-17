@@ -7,7 +7,7 @@ from delivery.models import Delivery
 import uuid
 
 class Order(models.Model):
-    order_id = models.UUIDField(default=uuid.uuid4, editable=False, unique=True, primary_key=True)
+    id = models.UUIDField(default=uuid.uuid4, editable=False, unique=True, primary_key=True)
     user = models.ForeignKey(CustomUser, on_delete=models.CASCADE, related_name='orders')
     address = models.ForeignKey(Address, on_delete=models.SET_NULL, null=True, related_name='orders')
     payment = models.ForeignKey(Payment, on_delete=models.SET_NULL, null=True, related_name='orders')

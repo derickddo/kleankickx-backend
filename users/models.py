@@ -43,6 +43,11 @@ class CustomUser(AbstractUser):
 
     objects = CustomUserManager()
 
+    class Meta:
+        verbose_name = 'User'
+        verbose_name_plural = 'Users'
+        db_table = 'users'  
+
 class Discount(models.Model):
     DISCOUNT_TYPES = (
         ('signup', 'Signup Discount'),
@@ -55,6 +60,11 @@ class Discount(models.Model):
 
     def __str__(self):
         return f"{self.discount_type}: {self.percentage}% (Active: {self.is_active})"
+    
+    class Meta:
+        verbose_name = 'Discount'
+        verbose_name_plural = 'Discounts'
+        db_table = 'discounts'
 
 class Coupon(models.Model):
     code = models.CharField(max_length=20, unique=True)
@@ -69,3 +79,9 @@ class Coupon(models.Model):
 
     def __str__(self):
         return f"{self.code}: {self.discount_percentage}% (Expires: {self.expiration_date})"
+
+    class Meta:
+        verbose_name = 'Coupon'
+        verbose_name_plural = 'Coupons'
+        db_table = 'coupons'
+        ordering = ['-created_at']

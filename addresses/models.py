@@ -17,3 +17,8 @@ class Address(models.Model):
 
     def __str__(self):
         return f"{self.name}'s address at {self.address}, {self.region}"
+    
+    class Meta:
+        verbose_name = 'Address'
+        verbose_name_plural = 'Addresses'
+        db_table = 'addresses'
