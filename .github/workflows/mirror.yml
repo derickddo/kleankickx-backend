@@ -15,7 +15,18 @@ jobs:
         run: |
           git config --global user.name "github-actions"
           git config --global user.email "github-actions@users.noreply.github.com"
+      - name: Setup SSH
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+          ssh-keyscan github.com >> ~/.ssh/known_hosts
+      - name: Debug SSH and Git
+        run: |
+          ssh -T git@github.com || true
+          git remote -v
+          git branch -a
       - name: Push to Mirror
         run: |
-          git remote add mirror https://x-access-token:${{ secrets.REPO_TOKEN }}@github.com/derickddo/kleankickx-backend.git
+          git remote add mirror git@github.com:derickddo/kleankickx-backend.git
           git push mirror main --force
