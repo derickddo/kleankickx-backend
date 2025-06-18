@@ -1,19 +1,21 @@
-name: Mirror to Personal Repo
-
+name: Mirror to Personal Repository
 on:
   push:
-    branches: [main]  # Adjust if you use a different branch
-
+    branches:
+      - main
 jobs:
   mirror:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout source repo
-        uses: actions/checkout@v3
-
-      - name: Mirror push to personal repo
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Configure Git
         run: |
           git config --global user.name "github-actions"
           git config --global user.email "github-actions@users.noreply.github.com"
-          git remote add mirror https://x-access-token:${{ secrets.MIRROR_PUSH_TOKEN }}@github.com/derickddo/kleankickx-backend.git
-          git push mirror main --force  # Adjust if using a different branch
+      - name: Push to Mirror
+        run: |
+          git remote add mirror https://x-access-token:${{ secrets.REPO_TOKEN }}@github.com/derickddo/kleankickx-backend.git
+          git push mirror main --force
