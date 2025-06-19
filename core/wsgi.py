@@ -15,3 +15,4 @@ from settings.base import DEBUG
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'settings.dev' if DEBUG else 'settings.prod')
 
 application = get_wsgi_application()
+app = application  # Vercel looks for this
