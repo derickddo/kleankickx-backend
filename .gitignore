@@ -46,3 +46,8 @@ docs/_build/
 
 # sqlite database files
 *.sqlite3 
+
+# Django static files
+staticfiles/
+# Django media files
+media/
